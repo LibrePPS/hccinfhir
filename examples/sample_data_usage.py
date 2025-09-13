@@ -36,13 +36,13 @@ def example_1_basic_eob_processing():
     )
     
     # Process the EOB data
-    processor = HCCInFHIR()
+    processor = HCCInFHIR(rebuild_db=True)
     result = processor.run([eob_data], demographics)
     
-    print(f"HCC Risk Score: {result['risk_score']}")
-    print(f"Diagnosis Codes: {result['diagnosis_codes']}")
-    print(f"Service Lines: {len(result['service_level_data'])}")
-    
+    print(f"HCC Risk Score: {result.risk_score}")
+    print(f"Diagnosis Codes: {result.diagnosis_codes}")
+    print(f"Service Lines: {len(result.service_level_data)}")
+
     return result
 
 def example_2_multiple_eob_samples():
@@ -69,10 +69,10 @@ def example_2_multiple_eob_samples():
     processor = HCCInFHIR()
     result = processor.run(eob_list, demographics)
     
-    print(f"Combined HCC Risk Score: {result['risk_score']}")
-    print(f"Total Diagnosis Codes: {len(result['diagnosis_codes'])}")
-    print(f"Total Service Lines: {len(result['service_level_data'])}")
-    
+    print(f"Combined HCC Risk Score: {result.risk_score}")
+    print(f"Total Diagnosis Codes: {len(result.diagnosis_codes)}")
+    print(f"Total Service Lines: {len(result.service_level_data)}")
+
     return result
 
 def example_3_837_claim_processing():
@@ -125,14 +125,14 @@ def example_4_compare_formats():
     service_result = processor.run_from_service_data(service_data, demographics)
     
     print("EOB Processing:")
-    print(f"  Risk Score: {eob_result['risk_score']}")
-    print(f"  Diagnosis Codes: {len(eob_result['diagnosis_codes'])}")
-    print(f"  Service Lines: {len(eob_result['service_level_data'])}")
-    
+    print(f"  Risk Score: {eob_result.risk_score}")
+    print(f"  Diagnosis Codes: {len(eob_result.diagnosis_codes)}")
+    print(f"  Service Lines: {len(eob_result.service_level_data)}")
+
     print("\n837 Processing:")
-    print(f"  Risk Score: {service_result['risk_score']}")
-    print(f"  Diagnosis Codes: {len(service_result['diagnosis_codes'])}")
-    print(f"  Service Lines: {len(service_result['service_level_data'])}")
+    print(f"  Risk Score: {service_result.risk_score}")
+    print(f"  Diagnosis Codes: {len(service_result.diagnosis_codes)}")
+    print(f"  Service Lines: {len(service_result.service_level_data)}")
     
     return eob_result, service_result
 
@@ -159,13 +159,13 @@ def example_5_batch_processing():
     result = processor.run(eob_list, demographics)
     
     print(f"Batch Processing Results:")
-    print(f"  Total Risk Score: {result['risk_score']}")
-    print(f"  Unique Diagnosis Codes: {len(result['diagnosis_codes'])}")
-    print(f"  Total Service Lines: {len(result['service_level_data'])}")
-    
+    print(f"  Total Risk Score: {result.risk_score}")
+    print(f"  Unique Diagnosis Codes: {len(result.diagnosis_codes)}")
+    print(f"  Total Service Lines: {len(result.service_level_data)}")
+
     # Show some sample diagnosis codes
-    if result['diagnosis_codes']:
-        print(f"  Sample Diagnosis Codes: {result['diagnosis_codes'][:5]}")
+    if result.diagnosis_codes:
+        print(f"  Sample Diagnosis Codes: {result.diagnosis_codes[:5]}")
     
     return result
 
@@ -184,8 +184,6 @@ def main():
         
         print("\n" + "=" * 60)
         print("All examples completed successfully!")
-        print(f"Total EOB samples processed: {len(result1['service_level_data']) + len(result2['service_level_data']) + len(eob_result['service_level_data']) + len(batch_result['service_level_data'])}")
-        print(f"Total 837 service lines processed: {len(service_data)}")
         
     except Exception as e:
         print(f"\nError running examples: {e}")

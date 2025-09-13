@@ -9,6 +9,7 @@ import importlib.resources
 import json
 from typing import List, Dict, Any, Union, Optional
 from pathlib import Path
+from hccinfhir.datamodels import Demographics
 
 
 class SampleData:
@@ -250,3 +251,15 @@ def list_available_samples() -> Dict[str, Any]:
         A dictionary containing information about available samples
     """
     return SampleData.list_available_samples()
+
+def get_demographics_sample() -> Demographics:
+    """
+    Returns a sample Demographics object for testing.
+    """
+    return Demographics(
+        age=85,
+        sex='F',
+        dual_elgbl_cd='01',
+        orec='0',
+        crec='0'
+    )

@@ -1,9 +1,17 @@
+import os
 from typing import List, Dict, Any, Union
 from hccinfhir.extractor import extract_sld_list
 from hccinfhir.filter import apply_filter
 from hccinfhir.model_calculate import calculate_raf
 from hccinfhir.datamodels import Demographics, ServiceLevelData, RAFResult, ModelName, ProcFilteringFilename, DxCCMappingFilename
-from hccinfhir.utils import load_proc_filtering, load_dx_to_cc_mapping
+from hccinfhir.database import rebuild_database as rb
+def rebuild_database():
+    """Forces a rebuild of the data from the source zip file."""
+    db_path = os.path.join(os.path.dirname(__file__), "data", "hcc.sqlite")
+    if os.path.exists(db_path):
+        os.remove(db_path)
+    rb()
+
 
 class HCCInFHIR:
     """
@@ -17,7 +25,8 @@ class HCCInFHIR:
                  filter_claims: bool = True, 
                  model_name: ModelName = "CMS-HCC Model V28",
                  proc_filtering_filename: ProcFilteringFilename = "ra_eligible_cpt_hcpcs_2026.csv",
-                 dx_cc_mapping_filename: DxCCMappingFilename = "ra_dx_to_cc_2026.csv"):
+                 dx_cc_mapping_filename: DxCCMappingFilename = "ra_dx_to_cc_2026.csv",
+                 rebuild_db: bool = False):
         """
         Initialize the HCCInFHIR processor.
         
@@ -31,9 +40,8 @@ class HCCInFHIR:
         self.model_name = model_name
         self.proc_filtering_filename = proc_filtering_filename
         self.dx_cc_mapping_filename = dx_cc_mapping_filename
-        self.professional_cpt = load_proc_filtering(proc_filtering_filename)
-        self.dx_to_cc_mapping = load_dx_to_cc_mapping(dx_cc_mapping_filename)
-
+        if rebuild_db:
+            rebuild_database()
 
     def _ensure_demographics(self, demographics: Union[Demographics, Dict[str, Any]]) -> Demographics:
         """Convert demographics dict to Demographics object if needed."""
@@ -55,8 +63,7 @@ class HCCInFHIR:
             new_enrollee=demographics.new_enrollee,
             snp=demographics.snp,
             low_income=demographics.low_income,
-            graft_months=demographics.graft_months,
-            dx_to_cc_mapping=self.dx_to_cc_mapping
+            graft_months=demographics.graft_months
         )
 
     def _get_unique_diagnosis_codes(self, service_data: List[ServiceLevelData]) -> List[str]:
@@ -83,7 +90,8 @@ class HCCInFHIR:
         sld_list = extract_sld_list(eob_list)
 
         if self.filter_claims:
-            sld_list = apply_filter(sld_list, professional_cpt=self.professional_cpt)
+            year = int(self.proc_filtering_filename.split('_')[-1].split('.')[0])
+            sld_list = apply_filter(sld_list, year=year)
             
         # Calculate RAF score
         unique_dx_codes = self._get_unique_diagnosis_codes(sld_list)
@@ -116,8 +124,8 @@ class HCCInFHIR:
                 )
         
         if self.filter_claims:
-            standardized_data = apply_filter(standardized_data, 
-                                             professional_cpt=self.professional_cpt)
+            year = int(self.proc_filtering_filename.split('_')[-1].split('.')[0])
+            standardized_data = apply_filter(standardized_data, year=year)
 
         
         # Calculate RAF score

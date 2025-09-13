@@ -1,51 +1,41 @@
-from typing import Dict, Set, Tuple
-import importlib.resources
-from hccinfhir.datamodels import ModelName  
+from typing import Dict, Set, Tuple, Optional
+from hccinfhir.datamodels import ModelName
+from hccinfhir.database import get_db_session, RAHierarchies
 
-def load_hierarchies(hierarchies_file: str) -> Dict[Tuple[str, ModelName], Set[str]]:
-    """Load hierarchies from a CSV file."""
-    hierarchies = {}
+def load_hierarchies_from_db(model_name: ModelName) -> Dict[Tuple[str, ModelName], Set[str]]:
+    """Load hierarchies from the database for a specific model."""
+    db_session = get_db_session()
     try:
-        with importlib.resources.open_text('hccinfhir.data', hierarchies_file) as f:
-            for line in f.readlines()[1:]:  # Skip header
-                try:
-                    cc_parent, cc_child, model_domain, model_version, _ = line.strip().split(',')
-                    if model_domain == 'ESRD':
-                        model_name = f"CMS-HCC {model_domain} Model {model_version}"
-                    else:
-                        model_name = f"{model_domain} Model {model_version}"
-                    key = (cc_parent, model_name)
-                    if key not in hierarchies:
-                        hierarchies[key] = {cc_child}
-                    else:
-                        hierarchies[key].add(cc_child)
-                except ValueError:
-                    continue  # Skip malformed lines
-    except Exception as e:
-        print(f"Error loading mapping file: {e}")
+        query = db_session.query(RAHierarchies.cc_parent, RAHierarchies.cc_child).filter(RAHierarchies.model_fullname == model_name)
         hierarchies = {}
-    return hierarchies
-
-# Load default mappings from csv file
-hierarchies_file_default = 'ra_hierarchies_2026.csv'
-hierarchies_default: Dict[Tuple[str, ModelName], Set[str]] = load_hierarchies(hierarchies_file_default)
+        for cc_parent, cc_child in query.all():
+            key = (cc_parent, model_name)
+            if key not in hierarchies:
+                hierarchies[key] = set()
+            hierarchies[key].add(cc_child)
+        return hierarchies
+    finally:
+        db_session.close()
 
 def apply_hierarchies(
     cc_set: Set[str],  # Set of active CCs
     model_name: ModelName = "CMS-HCC Model V28",
-    hierarchies: Dict[Tuple[str, ModelName], Set[str]] = hierarchies_default
+    hierarchies: Optional[Dict[Tuple[str, ModelName], Set[str]]] = None
 ) -> Set[str]:
     """
     Apply hierarchical rules to a set of CCs based on model version.
 
     Args:
-        ccs: Set of current active CCs
+        cc_set: Set of current active CCs
         model_name: HCC model name to use for hierarchy rules
-        hierarchies: Optional custom hierarchy dictionary
+        hierarchies: Optional custom hierarchy dictionary. If not provided, it will be loaded from the DB.
         
     Returns:
         Set of CCs after applying hierarchies
     """
+    if hierarchies is None:
+        hierarchies = load_hierarchies_from_db(model_name)
+
     # Track CCs that should be zeroed out
     to_remove = set()
     

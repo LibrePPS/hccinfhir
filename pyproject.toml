@@ -16,7 +16,14 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["pydantic>=2.10.3"]
+dependencies = [
+    "pydantic>=2.10.3",
+    "pytest>=8.3.5",
+    "sqlalchemy>=2.0.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
 
 [project.urls]
 Homepage = "https://github.com/mimilabs/hccinfhir"
